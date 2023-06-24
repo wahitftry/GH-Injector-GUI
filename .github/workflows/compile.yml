@@ -1,32 +1,32 @@
 name: Compile and Upload GUI
- on:
+on:
   push:
     branches:
       - main
- jobs:
+jobs:
   build:
     runs-on: windows-latest
-     steps:
+    steps:
     - uses: actions/checkout@v2
-     - name: Setup Visual Studio 2019
+    - name: Setup Visual Studio 2019
       uses: microsoft/setup-msbuild@v1.0.2
       with:
         vs-version: '2019'
         include-prerelease: true
-     - name: Setup Qt
+    - name: Setup Qt
       run: |
         choco install qt5 --params "/InstallDir:C:\Qt\5.15.2" -y
         choco install qt5.vcredist --params "/InstallDir:C:\Qt\5.15.2" -y
         choco install qt5-static --params "/InstallDir:C:\Qt\5.15.2" -y
-     - name: Setup Qt VS Tools
+    - name: Setup Qt VS Tools
       uses: qt-actions/qt-vs-tools@v1.2
       with:
         vs-version: '2019'
-     - name: Build Project
+    - name: Build Project
       run: |
         "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin\MSBuild.exe" GH-Injector-GUI.sln /t:Rebuild /p:Configuration=Release /p:Platform=x64
       working-directory: ./GH-Injector-GUI
-     - name: Upload Artifact
+    - name: Upload Artifact
       uses: actions/upload-artifact@v2
       with:
         name: GH-Injector-GUI

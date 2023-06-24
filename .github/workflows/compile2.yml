@@ -1,67 +1,55 @@
-name: Compile Project
+name: Build and Release
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
-
     runs-on: windows-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-    - name: Set up Visual Studio 2019
-      uses: microsoft/setup-msbuild@v1
-      with:
-        vs-version: 2019
+      - name: Setup MSVC
+        run: |
+          choco install visualstudio2019buildtools --package-parameters "--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64"
+          choco install qt-vsaddin --version 2.6.2
 
-    - name: Download and install Qt
-      run: |
-        # Download Qt Installer
-        curl -LO https://download.qt.io/official_releases/qt/5.15/5.15.2/qt-opensource-windows-x86-5.15.2.exe
-        # Install Qt 5.15.2 32-bit
-        Start-Process -Wait -FilePath .\qt-opensource-windows-x86-5.15.2.exe -ArgumentList '/S', '-platform', 'minimal'
-        # Install Qt 5.15.2 64-bit
-        Start-Process -Wait -FilePath .\qt-opensource-windows-x86_64-5.15.2.exe -ArgumentList '/S', '-platform', 'minimal'
+      - name: Install Qt
+        run: |
+          Invoke-WebRequest -Uri 'https://download.qt.io/official_releases/qt/5.15/5.15.2/qt-opensource-windows-x86-5.15.2.exe' -OutFile 'C:\Qt\qt.exe'
+          Start-Process -Wait -FilePath 'C:\Qt\qt.exe' -ArgumentList '--silent --confirm-command install --platform windows desktop --target-dir C:\Qt\5.15.2 --no-warnings-are-errors --no-qtwebengine'
 
-    - name: Download and extract Static Qt 5.15.2
-      run: |
-        # Download Static Qt 5.15.2
-        curl -LO https://github.com/martinrotter/qt5-minimalistic-builds/releases/download/5.15.2/qt-5.15.2-static-msvc2019-x86_64.zip
-        # Extract Static Qt 5.15.2
-        Expand-Archive -Path .\qt-5.15.2-static-msvc2019-x86_64.zip -DestinationPath C:\Qt\5.15.2\qt-5.15.2-static-msvc2019-x86_64
+      - name: Install Static Qt
+        run: |
+          Invoke-WebRequest -Uri 'https://github.com/martinrotter/qt5-minimalistic-builds/releases/download/5.15.2-vc2019-static-rt/Qt-5.15.2-vc2019-static-rt.7z' -OutFile 'C:\Qt\Qt-5.15.2-vc2019-static-rt.7z'
+          7z x 'C:\Qt\Qt-5.15.2-vc2019-static-rt.7z' -o'C:\Qt\5.15.2'
 
-    - name: Set up MSVC
-      run: |
-        # Set up MSVC for x86
-        Write-Host "Setting up MSVC x86..."
-        & "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars32.bat"
-        qtenv2.bat addQtPath "C:\Qt\5.15.2\msvc2019"
-        # Set up MSVC for x64
-        Write-Host "Setting up MSVC x64..."
-        & "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-        qtenv2.bat addQtPath "C:\Qt\5.15.2\msvc2019_64"
-        # Set up MSVC for x64_static
-        Write-Host "Setting up MSVC x64_static..."
-        & "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-        qtenv2.bat addQtPath "C:\Qt\5.15.2\qt-5.15.2-static-msvc2019-x86_64"
+      - name: Set up environment variables
+        run: |
+          echo 'C:\Qt\5.15.2\msvc2019\bin' >> $GITHUB_PATH
+          echo 'C:\Qt\5.15.2\msvc2019_64\bin' >> $GITHUB_PATH
+          echo 'C:\Qt\5.15.2\qt-5.15.2-static-msvc2019-x86_64\bin' >> $GITHUB_PATH
 
-    - name: Restart MSVC for IntelliSense
-      run: |
-        # Restart MSVC to repair IntelliSense
-        taskkill /IM devenv.exe /F
+      - name: Restart MSVC to repair IntelliSense
+        run: |
+          Get-Process | Where-Object {$_.Name -match 'devenv'} | Stop-Process -Force
+          Start-Sleep -Seconds 5
 
-    - name: Build Project
-      run: |
-        # Build the project
-        MSBuild.exe GH-Injector-GUI.sln /t:Build /p:Configuration=Release
+      - name: Build project
+        run: |
+          "& 'C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvarsall.bat' x86_amd64"
+          cd GH-Injector-GUI
+          msbuild GH-Injector-GUI.sln /p:Configuration=Release /p:Platform="Any CPU"
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: Release
-        path: GH-Injector-GUI/bin/Release/
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: GH-Injector-GUI
+          path: GH-Injector-GUI/bin/Release

@@ -1,0 +1,56 @@
+name: Build and Upload Artifact
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Install Visual Studio
+        run: |
+          # Download Visual Studio Installer
+          Invoke-WebRequest -Uri 'https://aka.ms/vs/16/release/vs_community.exe' -OutFile 'vs_community.exe'
+          
+          # Install Visual Studio
+          Start-Process -Wait -FilePath '.\vs_community.exe' -ArgumentList '--installPath "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community" --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended'
+
+      - name: Install Qt
+        run: |
+          # Download Qt Online Installer
+          Invoke-WebRequest -Uri 'https://download.qt.io/official_releases/online_installers/qt-unified-windows-x86-online.exe' -OutFile 'qt-installer.exe'
+          
+          # Install Qt
+          Start-Process -Wait -FilePath '.\qt-installer.exe' -ArgumentList '--installDir "C:\Qt" --addModules qt.qt5.5152.win64_msvc2019_64 --addModules qt.tools.vstools'
+          
+          # Configure Qt Paths
+          $env:Path += ';C:\Qt\5.15.2\msvc2019\bin;C:\Qt\5.15.2\msvc2019_64\bin;C:\Qt\5.15.2\qt-5.15.2-static-msvc2019-x86_64\bin'
+          [Environment]::SetEnvironmentVariable('Path', $env:Path, [EnvironmentVariableTarget]::Machine)
+
+      - name: Setup MSVC
+        run: |
+          # Configure Qt Options
+          & 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\VsDevCmd.bat'
+          QtChooser.exe -qt=5.15.2 -msvc2019 -x64
+          QtChooser.exe -qt=5.15.2 -msvc2019 -x86
+          QtChooser.exe -qt=5.15.2 -msvc2019 -static
+
+          # Restart MSVC to repair intellisense
+          Stop-Process -Name 'devenv'
+
+      - name: Build Project
+        run: |
+          # Open Solution File
+          cd GH-Injector-GUI
+          msbuild GH-Injector-GUI.sln /p:Configuration=Release
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: GH-Injector-GUI-Build
+          path: GH-Injector-GUI/bin/Release/

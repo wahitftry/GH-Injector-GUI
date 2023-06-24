@@ -1,33 +1,49 @@
-name: Compile and Upload GUI
+name: Compile Project
+
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
+
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
-    - uses: actions/checkout@v2
-    - name: Setup Visual Studio 2019
-      uses: microsoft/setup-msbuild@v1.0.2
-      with:
-        vs-version: '2019'
-        include-prerelease: true
-    - name: Setup Qt
-      run: |
-        choco install qt5 --params "/InstallDir:C:\Qt\5.15.2" -y
-        choco install qt5.vcredist --params "/InstallDir:C:\Qt\5.15.2" -y
-        choco install qt5-static --params "/InstallDir:C:\Qt\5.15.2" -y
-    - name: Setup Qt VS Tools
-      uses: qt-actions/qt-vs-tools@v1.2
-      with:
-        vs-version: '2019'
-    - name: Build Project
-      run: |
-        "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin\MSBuild.exe" GH-Injector-GUI.sln /t:Rebuild /p:Configuration=Release /p:Platform=x64
-      working-directory: ./GH-Injector-GUI
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: GH-Injector-GUI
-        path: ./GH-Injector-GUI/bin/Release/GH-Injector-GUI.exe
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Setup MSVC
+        run: |
+          choco install visualstudio2019community --package-parameters "--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64"
+          choco install qt-sdk
+
+      - name: Install Qt VS Tools
+        run: |
+          vsixinstaller.exe C:\Qt\Tools\QtVSAddin\*.vsix
+
+      - name: Extract Static Qt
+        run: |
+          7z x C:\Qt\5.15.2\qt-5.15.2-static-msvc2019-x86_64.zip -oC:\Qt\5.15.2\qt-5.15.2-static-msvc2019-x86_64
+
+      - name: Setup Environment Variables
+        run: |
+          echo "C:\Qt\5.15.2\msvc2019" >> $env:Path
+          echo "C:\Qt\5.15.2\msvc2019_64" >> $env:Path
+          echo "C:\Qt\5.15.2\qt-5.15.2-static-msvc2019-x86_64" >> $env:Path
+
+      - name: Build Project
+        run: |
+          "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe" GH-Injector-GUI.sln /t:Build /p:Configuration=Release /p:Platform=x86
+          "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe" GH-Injector-GUI.sln /t:Build /p:Configuration=Release /p:Platform=x64
+
+      - name: Create Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: compiled-artifacts
+          path: |
+            GH-Injector-GUI/bin/Release/x86
+            GH-Injector-GUI/bin/Release/x64

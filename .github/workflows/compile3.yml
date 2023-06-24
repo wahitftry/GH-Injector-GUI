@@ -1,0 +1,76 @@
+name: Build and Upload Artifact
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Download Visual Studio 2019
+        run: |
+          # Download Visual Studio 2019 installer
+          curl -o vs_installer.exe https://aka.ms/vs/16/release/vs_community.exe
+
+          # Install Visual Studio 2019
+          vs_installer.exe --quiet --wait --norestart --installPath "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community" --add Microsoft.VisualStudio.Workload.NativeDesktop --add Microsoft.VisualStudio.Workload.VCTools
+
+      - name: Download and Install Qt
+        run: |
+          # Download Qt installer
+          curl -o qt_installer.exe https://download.qt.io/official_releases/qt/5.15/5.15.2/qt-opensource-windows-x86-5.15.2.exe
+
+          # Install Qt 5.15.2 32-bit
+          qt_installer.exe --silent --script qt_installer_script.qs
+
+          # Install Qt 5.15.2 64-bit
+          qt_installer.exe --silent --script qt_installer_script_64.qs
+
+      - name: Install Qt VS Tools
+        run: |
+          # Download Qt VS Tools extension
+          curl -o qt_vs_tools.vsix https://marketplace.visualstudio.com/_apis/public/gallery/publishers/TheQtCompany/visualstudiooffers/QtVSTools/2022.0.0/vspackage
+
+          # Install Qt VS Tools for Visual Studio 2019
+          "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\devenv.exe" /installvstemplates qt_vs_tools.vsix
+
+      - name: Download and Extract Static Qt
+        run: |
+          # Download static Qt 5.15.2
+          curl -L -o qt_static.zip https://github.com/martinrotter/qt5-minimalistic-builds/releases/download/5.15.2/qt-5.15.2-static-msvc2019-x86_64.zip
+
+          # Extract to "C:\Qt\5.15.2\qt-5.15.2-static-msvc2019-x86_64"
+          Expand-Archive -Path qt_static.zip -DestinationPath "C:\Qt\5.15.2\qt-5.15.2-static-msvc2019-x86_64"
+
+      - name: Setup MSVC
+        run: |
+          # Add Qt paths to MSVC
+          "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\VsDevCmd.bat" && ^
+          "C:\Qt\5.15.2\msvc2019\bin\qtenv2.bat" && ^
+          "C:\Qt\5.15.2\msvc2019_64\bin\qtenv2.bat" && ^
+          "C:\Qt\5.15.2\qt-5.15.2-static-msvc2019-x86_64\bin\qtenv2.bat"
+
+      - name: Restart MSVC for IntelliSense Repair
+        run: |
+          # Restart MSVC to repair IntelliSense
+          taskkill /IM devenv.exe /F
+
+      - name: Build Projects
+        run: |
+          # Change to project directory
+          cd GH-Injector-GUI
+
+          # Build the project using MSBuild
+          "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe" GH-Injector-GUI.sln /t:Build /p:Configuration=Release
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: GH-Injector-GUI-Release
+          path: GH-Injector-GUI/bin/Release/

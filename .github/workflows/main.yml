@@ -7,19 +7,13 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Setup MSVC
+    - name: Set up MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+    - name: Download and Install Qt
       run: |
-        choco install visualstudio2019buildtools --package-parameters "--includeRecommended --includeOptional --passive --locale en-US"
-        choco install qt-5.15.2 --params '"/InstallDir:C:\Qt\5.15.2"'
-        choco install qt-vs-addin --params '"/InstallDir:C:\Qt\Tools\QtVSAddin"'
-    - name: Build project
+        Invoke-WebRequest -Uri https://www.qt.io/download-qt-installer -OutFile qt-installer.exe
+        Start-Process -FilePath qt-installer.exe -ArgumentList "--script qt-installer-noninteractive.qs" -Wait
+    - name: Add Qt to Path
       run: |
-        "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-        "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin\MSBuild.exe" GH-Injector-GUI.sln /p:Configuration=Release
-    - name: Upload artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: GH-Injector-GUI
-        path: |
-          GH-Injector-GUI\bin\Release\GH-Injector-GUI.exe
-          GH-Injector-GUI\bin\Release\GH-Injector-GUI.pdb
+        echo "C:\Qt\5.15.2\msvc2019_32\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        echo "C:\Qt\5.15.2\msvc2019_64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append

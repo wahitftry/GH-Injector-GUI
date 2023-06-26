@@ -1,45 +1,49 @@
+console.log("Running non-interactive Qt Installer...");
+
 function Controller() {
     installer.autoRejectMessageBoxes();
     installer.installationFinished.connect(function() {
         gui.clickButton(buttons.NextButton);
-    });
+    })
 }
 
 Controller.prototype.WelcomePageCallback = function() {
-    gui.clickButton(buttons.NextButton);
+    console.log("Accepting license agreement...");
+    gui.clickButton(buttons.NextButton, 3000);
 }
 
 Controller.prototype.CredentialsPageCallback = function() {
-    gui.clickButton(buttons.NextButton);
+    console.log("Skipping credentials page...");
+    gui.clickButton(buttons.NextButton, 3000);
 }
 
 Controller.prototype.ComponentSelectionPageCallback = function() {
+    console.log("Selecting components...");
+    // Modify the component selection as needed
     var widget = gui.currentPageWidget();
-    widget.deselectAll();
-    widget.selectComponent("qt.qt5.5152.win64_msvc2019");
-    widget.selectComponent("qt.qt5.5152.win32_msvc2019");
-    gui.clickButton(buttons.NextButton);
+    widget.selectAll();
+    gui.clickButton(buttons.NextButton, 3000);
 }
 
 Controller.prototype.LicenseAgreementPageCallback = function() {
+    console.log("Accepting license agreement...");
     var widget = gui.currentPageWidget();
-    widget.acceptLicense();
+    widget.AcceptLicenseRadioButton.setChecked(true);
     gui.clickButton(buttons.NextButton);
 }
 
 Controller.prototype.StartMenuDirectoryPageCallback = function() {
+    console.log("Skipping Start Menu directory page...");
     gui.clickButton(buttons.NextButton);
 }
 
 Controller.prototype.ReadyForInstallationPageCallback = function() {
-    gui.clickButton(buttons.InstallButton);
+    console.log("Ready to install...");
+    gui.clickButton(buttons.NextButton);
 }
 
 Controller.prototype.FinishedPageCallback = function() {
-    var checkBoxForm = gui.currentPageWidget().LaunchQtCreatorCheckBoxForm;
-    if (checkBoxForm && checkBoxForm.launchQtCreatorCheckBox) {
-        checkBoxForm.launchQtCreatorCheckBox.checked = false;
-    }
+    console.log("Installation completed.");
     gui.clickButton(buttons.FinishButton);
 }
 

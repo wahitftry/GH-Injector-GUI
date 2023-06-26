@@ -19,7 +19,7 @@ jobs:
         # Download Qt Installer
         # Modify the URL if a different version is required
         curl -LO "https://download.qt.io/official_releases/qt/5.15/5.15.2/qt-opensource-windows-x86-5.15.2.exe"
-        start /wait qt-opensource-windows-x86-5.15.2.exe --silent --accept-licenses --default-answer --installDir "C:\Qt\5.15.2"
+        start /wait qt-opensource-windows-x86-5.15.2.exe --script qt-installer-noninteractive.qs --platform minimal
 
     - name: Set up Qt VS Tools
       run: |

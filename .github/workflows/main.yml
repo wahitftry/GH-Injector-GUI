@@ -1,22 +1,22 @@
 name: Build
- on:
+on:
   push:
     branches: main
- jobs:
+jobs:
   build:
     runs-on: windows-latest
-     steps:
+    steps:
     - uses: actions/checkout@v2
-     - name: Setup MSVC
+    - name: Setup MSVC
       run: |
         choco install visualstudio2019buildtools --package-parameters "--includeRecommended --includeOptional --passive --locale en-US"
         choco install qt-5.15.2 --params '"/InstallDir:C:\Qt\5.15.2"'
         choco install qt-vs-addin --params '"/InstallDir:C:\Qt\Tools\QtVSAddin"'
-     - name: Build project
+    - name: Build project
       run: |
         "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
         "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin\MSBuild.exe" GH-Injector-GUI.sln /p:Configuration=Release
-     - name: Upload artifact
+    - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
         name: GH-Injector-GUI

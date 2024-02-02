@@ -14,7 +14,6 @@ jobs:
       uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: x64
-        vsversion: '2019'
         
     # Set up Qt environment
     - name: Install Qt

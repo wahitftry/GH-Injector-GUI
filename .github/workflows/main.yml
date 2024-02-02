@@ -1,19 +1,36 @@
-name: Build
-on:
-  push:
-    branches: main
+name: CI
+
+on: [push, pull_request]
+
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up MSVC
-      uses: ilammy/msvc-dev-cmd@v1
-    - name: Download and Install Qt
+    - uses: actions/checkout@v4
+
+    # Set up MSVC
+    - name: Install Visual Studio Build Tools
+      uses: TheMrMilchmann/setup-msvc-dev@v3
+      with:
+        arch: x64
+
+    # Set up Qt environment
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '5.15.2'
+        arch: 'win64_msvc2019_64'
+
+    # Additional steps to configure Qt VS Tools or static Qt would go here
+    # Note: The actual steps to download and configure these tools are not supported by GitHub Actions directly
+
+    # Build the project
+    - name: Build the project
       run: |
-        Invoke-WebRequest -Uri https://www.qt.io/download-qt-installer -OutFile qt-installer.exe
-        Start-Process -FilePath qt-installer.exe -ArgumentList "--script qt-installer-noninteractive.qs" -Wait
-    - name: Add Qt to Path
-      run: |
-        echo "C:\Qt\5.15.2\msvc2019_32\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-        echo "C:\Qt\5.15.2\msvc2019_64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        # Your build commands go here
+        # For example, using MSBuild:
+        msbuild "GH Injector GUI.sln" /p:Configuration=Release /p:Platform="x64"
+
+    # Additional steps to download and set up GH Injector-Library would go here
+    # Note: The actual steps to download and configure GH Injector-Library are not supported by GitHub Actions directly

@@ -11,17 +11,19 @@ jobs:
 
     # Set up MSVC
     - name: Install Visual Studio Build Tools
-      uses: TheMrMilchmann/setup-msvc-dev@v3
+      uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: x64
-
+        vsversion: 2019
+        uwp: true
+        
     # Set up Qt environment
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
       with:
         version: '5.15.2'
         arch: 'win64_msvc2019_64'
-
+        
     # Additional steps to configure Qt VS Tools or static Qt would go here
     # Note: The actual steps to download and configure these tools are not supported by GitHub Actions directly
 
